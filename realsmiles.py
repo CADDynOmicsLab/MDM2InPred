@@ -8,18 +8,18 @@ import math
 from padelpy import from_smiles
 from rdkit import Chem
 import base64
-import cohere
+from openai import OpenAI
 
 # ------------------------------
 # CONFIG - Update paths
 # ------------------------------
 MODEL_PATHS = {
     "Model 1": "lightgbm.pkl",
-    "Model 2": "rf.pkl"
+    "Model 2": "rf.joblib"
 }
 FEATURE_PATHS = {
-    "Model 1": "newm1_aligned_376.csv",
-    "Model 2": "rf_ready_newm2.csv"
+    "Model 1": "lightgbm_feature_importances.csv",
+    "Model 2": "rf_feature_importance.csv"
 }
 DATASET_PATH = "main.csv"
 
@@ -110,7 +110,7 @@ footer { visibility: hidden; }
 
 /* ── MAIN CONTENT BLOCK ── */
 .block-container {
-    padding: 0 2rem 3rem 2rem !important;
+    padding: 0.5rem 2rem 3rem 2rem !important;
     max-width: 1200px !important;
 }
 
@@ -121,7 +121,8 @@ footer { visibility: hidden; }
     flex-direction: column;
     justify-content: center;
     align-items: center;        
-    padding: 36px 32px 36px;
+    padding: 0px 32px 36px;
+    margin-bottom: 16px;        
     animation: fadeSlideDown 0.9s ease both;
     position: relative;
 }
@@ -170,7 +171,7 @@ footer { visibility: hidden; }
     font-weight: 500;
     color: #557777;
     text-align: center;
-    white-space: nowrap;
+    white-space: normal;
     max-width: 1400px;
     line-height: 1.75;
     letter-spacing: 0.01em;
@@ -182,8 +183,8 @@ footer { visibility: hidden; }
     justify-content: space-between !important;
     align-items: center !important;
     width: 100% !important;
-    max-width: 1100px !important;
     margin: 0 auto !important;
+    margin-top: 16px !important;        
     background: #0B5D5B !important;
     border-radius: 0px !important;
     padding: 0 !important;
@@ -200,14 +201,14 @@ footer { visibility: hidden; }
     padding: 14px 0 !important;
     background: #156f6f !important;
     color: white !important;
-    font-size: 0.92rem !important;
+    font-size: 1.0rem !important;
     font-weight: 500 !important;
     font-family: 'Poppins', sans-serif !important;
     border: none !important;
     border-right: 1px solid rgba(255,255,255,0.25) !important;
     border-radius: 0 !important;
     transition: all 0.25s ease !important;
-    min-height: 52px !important;
+    min-height: 54px !important;
 }
 .stTabs [role="tab"]:last-child {
     border-right: none !important;
@@ -229,7 +230,7 @@ footer { visibility: hidden; }
     color: inherit !important;
     margin: 0 !important;
     padding: 0 !important;
-    font-size: 0.9rem !important;
+    font-size: 1.0rem !important;
     font-weight: inherit !important;
 }
 /* Hide the underline indicator bar */
@@ -237,6 +238,20 @@ footer { visibility: hidden; }
 .stTabs [data-baseweb="tab-highlight"] { display: none !important; }
 .stTabs [data-baseweb="tab-border"]    { display: none !important; }
 
+/* Hide the underline indicator bar */
+.stTabs [role="tablist"]::after,
+.stTabs [data-baseweb="tab-highlight"] { display: none !important; }
+.stTabs [data-baseweb="tab-border"]    { display: none !important; }
+
+/* Remove gap below navbar */
+.stTabs [data-baseweb="tab-panel"] {
+    padding-top: 0 !important;
+}
+[data-testid="stTabsContent"] {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+             
 /* ── TEAL DIVIDER RULE below navbar ── */
 .mdm2-nav-divider {
     width: 100%;
@@ -308,9 +323,9 @@ footer { visibility: hidden; }
     padding-top: 10px;
 }
 .welcome-card p {
-    font-size: 1.2rem;
+    font-size: 1.7rem;
     color: #365c5c;
-    line-height: 1.95;
+    line-height: 2.0;
     text-align: justify;
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
@@ -342,37 +357,7 @@ footer { visibility: hidden; }
     text-transform: uppercase;
     margin-top: 4px;
 }
-
-/* ── ACTION BUTTONS ── */
-.btn-group { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 11px 26px;
-    border-radius: 50px;
-    font-size: 0.88rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    text-decoration: none;
-    border: 2px solid transparent;
-    letter-spacing: 0.01em;
-    font-family: 'Poppins', sans-serif;
-}
-.btn-primary {
-    background: var(--teal-dark);
-    color: var(--white);
-    box-shadow: 0 6px 22px rgba(13,110,110,0.35);
-}
-.btn-primary:hover { background: var(--teal); transform: translateY(-2px); }
-.btn-outline {
-    background: transparent;
-    color: var(--teal-dark);
-    border-color: var(--teal-mid);
-}
-.btn-outline:hover { background: var(--cyan-soft); transform: translateY(-2px); }
-
+            
 /* ── FEATURE CARDS ── */
 .features-grid {
     display: grid;
@@ -481,7 +466,7 @@ footer { visibility: hidden; }
     border-top: 4px solid var(--teal-mid);
     border-radius: 18px;
     padding: 26px 28px;
-    margin-bottom: 24px;
+    margin: 20px 0 24px 0;
     box-shadow:
         0 10px 30px rgba(13,110,110,0.08),
         0 2px 10px rgba(13,110,110,0.04);
@@ -869,12 +854,18 @@ html, body, .main {
 """, unsafe_allow_html=True)
 
 # ------------------------------
-# Cohere Client
+# Groq Client (OpenAI-compatible)
 # ------------------------------
-co = cohere.Client(st.secrets["COHERE_API_KEY"])
+client = OpenAI(
+    api_key=st.secrets["GROQ_API_KEY"],
+    base_url="https://api.groq.com/openai/v1"
+)
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+
+if "active_tab" not in st.session_state:
+    st.session_state.active_tab = "Home"
 
 # ------------------------------
 # Converter Functions
@@ -950,7 +941,7 @@ def run_prediction(model_key, smiles_input, uploaded):
     with st.spinner(f"Running prediction with {model_key}…"):
         prediction = model.predict(X)
 
-    activity = ["Likely Inhibitor" if p >= 6 else "Likely Non-inhibitor" for p in prediction]
+    activity = ["Likely Inhibitor" if p >= 6 else "Likely Non-Inhibitor" for p in prediction]
 
     results_df = pd.DataFrame({
         "Molecule ID": desc_df["Name"],
@@ -966,7 +957,7 @@ def run_prediction(model_key, smiles_input, uploaded):
         styles = [f'background-color: {base_color}; color: #00332e; font-size:15px; text-align:center;'] * len(row)
         if row["Prediction"] == "Likely Inhibitor":
             styles[-1] = 'background-color: #0d6e6e; color: white; font-weight:bold; text-align:center;'
-        elif row["Prediction"] == "Likely Non-inhibitor":
+        elif row["Prediction"] == "Likely Non-Inhibitor":
             styles[-1] = 'background-color: #cce6ff; color: #065f46; font-weight:bold; text-align:center;'
         return styles
 
@@ -999,7 +990,25 @@ def run_prediction(model_key, smiles_input, uploaded):
 # ------------------------------
 APP_CONTEXT = """
 This is the MDM2InPred dashboard.
-Modules:
+
+BIOLOGY BACKGROUND (use this to answer conceptual questions directly, without redirecting to a tab unless the user specifically asks how to use the tool):
+
+MDM2 (murine double minute 2) is an E3 ubiquitin ligase and the primary negative regulator of the tumor suppressor protein p53. Under normal cellular conditions, MDM2 binds directly to the transactivation domain of p53, blocking its ability to activate target genes, and also tags p53 for degradation via the ubiquitin-proteasome pathway. This keeps p53 levels low during unstressed conditions.
+
+In response to cellular stress — such as DNA damage, oncogene activation, or hypoxia — this MDM2-p53 interaction is disrupted, allowing p53 to accumulate and activate genes responsible for cell-cycle arrest, DNA repair, senescence, or apoptosis (programmed cell death). This is why p53 is often called the "guardian of the genome."
+
+In many human cancers, MDM2 is amplified or overexpressed (notably in soft-tissue sarcomas, osteosarcomas, and some leukemias), which excessively suppresses p53 activity even when p53 itself is genetically normal (wild-type). This allows cancer cells to evade apoptosis and continue proliferating unchecked.
+
+Small-molecule MDM2 inhibitors are drug candidates designed to block the MDM2-p53 protein-protein interaction, typically by occupying the p53-binding pocket on MDM2. This prevents MDM2 from suppressing p53, allowing p53 to become reactivated and restore its tumor-suppressive functions — making the MDM2-p53 axis an important and actively researched anticancer drug target. This is the biological basis and motivation for the MDM2InPred prediction tool.
+
+Key terms:
+- IC50: The concentration of an inhibitor required to reduce a biological activity (e.g., MDM2-p53 binding) by 50%. Lower IC50 = more potent inhibitor.
+- pIC50: The negative log10 of IC50 (in molar units), i.e. pIC50 = -log10(IC50). Higher pIC50 = more potent inhibitor. It's commonly used because it produces a more convenient, roughly linear scale for QSAR/ML modeling compared to raw IC50 values.
+- SMILES: A text-based notation (Simplified Molecular Input Line Entry System) used to represent a chemical compound's structure as a string, which can be parsed computationally.
+- Molecular descriptors: Numerical values computed from a molecule's structure (e.g., size, polarity, atom counts, fingerprints) that are used as input features for machine learning models.
+- LightGBM / Random Forest: Two machine learning algorithms used by this tool to predict pIC50 from molecular descriptors. LightGBM is a gradient-boosted decision tree method; Random Forest is an ensemble of decision trees. Both are trained on experimentally validated MDM2 inhibitor data using PaDEL-calculated descriptors.
+
+DASHBOARD MODULES (use this when the user asks how to use a specific feature):
 1) Home: Describes MDM2, its interaction with p53, and its role in cancer. Explains the importance of small-molecule MDM2 inhibitors.
 2) Prediction: Predicts the pIC50 value of user-provided molecules and classifies them as MDM2 inhibitors or non-inhibitors. User can paste SMILES or upload a .smi file (up to 200 MB). Two ML models: LightGBM and Random Forest. Models are trained on PaDEL descriptors.
 3) Converter: Bidirectional conversion between IC50 (in M) and pIC50 using pIC50 = -log10(IC50).
@@ -1011,22 +1020,25 @@ SYSTEM_INSTRUCTIONS = """
 You are an assistant for the MDM2InPred Streamlit dashboard.
 Use the APP CONTEXT to answer questions about how to use each module and general concepts (MDM2, p53, IC50, pIC50, inhibitors, SMILES, LightGBM, Random Forest).
 RULES:
-- If the user asks for exact internal data not in the context, say you do not have direct access and ask them to check the Dataset or Prediction tab.
+- Answer biology and concept questions (e.g. "what is MDM2", "how does p53 work") directly using the BIOLOGY BACKGROUND section in the APP CONTEXT. Do not redirect the user to the Home tab for conceptual questions you can already answer from the context.
+- Only redirect to a specific tab when the user asks how to perform an action in the app (e.g. "how do I run a prediction", "where do I upload my file").
+- If the user asks for exact internal data not in the context (e.g. specific dataset entries, exact experimental values), say you do not have direct access and ask them to check the Dataset or Prediction tab.
 - Do NOT invent experimental results, exact pIC50 values, or dataset entries.
-- If unsure, guide the user to the appropriate tab.
 - Be clear, concise, and user-friendly.
 """
 
 def chatbot_reply(user_text: str) -> str:
-    prompt = f"System:\n{SYSTEM_INSTRUCTIONS}\n\nAPP CONTEXT:\n{APP_CONTEXT}\n\nUser question:\n{user_text}"
     try:
-        response = co.chat(
-            model="command-a-03-2025",
-            message=prompt,
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": SYSTEM_INSTRUCTIONS + "\n\nAPP CONTEXT:\n" + APP_CONTEXT},
+                {"role": "user", "content": user_text}
+            ],
             temperature=0.2,
             max_tokens=300
         )
-        return response.text
+        return response.choices[0].message.content
     except Exception:
         return "Sorry, I could not generate an answer right now. Please try again later."
 
@@ -1041,9 +1053,9 @@ st.markdown("""
     </h1>
     <div class="mdm2-title-ornament">
     </div>
-    <p class="mdm2-subtitle">A machine learning-based web server for predicting MDM2 inhibitory activity (pIC50) and classifying compounds as inhibitors or non-inhibitors.</p>
+    <p class="mdm2-subtitle">A machine learning-based web server for predicting MDM2 inhibitory activity (pIC50) and<br>
+              classifying compounds as inhibitors or non-inhibitors.</p>
 </div>
-<hr class="mdm2-divider" style="margin-bottom: 20px;">
 """, unsafe_allow_html=True)
 
 # ============================================================
@@ -1075,7 +1087,7 @@ with col_vis:
             src="data:image/png;base64,{img_data}" 
             style="
                 width: 100%;
-                max-width: 380px;
+                max-width: 300px;
                 height: auto;
                 border-radius: 20px;
                 display: block;
@@ -1100,14 +1112,36 @@ with col_welcome:
                 MDM2 inhibitory activity of small molecules. It uses advanced machine learning models trained on 
                 experimentally validated data. It provides both regression-based pIC50 values and binary inhibitor 
                 classification.
-            </p>
+            </p>       
         </div>
         """, unsafe_allow_html=True)
 
 with tab_home:
 
+    # ── Feature Cards ──
+    st.markdown("""
+    <div class="features-grid" style="margin-top: 24px;">
+        <div class="feature-card">
+            <div class="feature-title">ML-based Prediction</div>
+            <div class="feature-desc">Accurate pIC₅₀ prediction using optimized LightGBM and Random Forest models</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-title">Easy to Use</div>
+            <div class="feature-desc">Simple interface for single or batch predictions via SMILES input or file upload</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-title">Data Transparency</div>
+            <div class="feature-desc">Access dataset information, training and validation sets for full reproducibility</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-title">Free for Academic Use</div>
+            <div class="feature-desc">Designed for research and educational purposes at no cost</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     # ── Modules Summary ──
-    st.markdown("<hr class='mdm2-divider' style='margin-top:10px; margin-bottom:10px;'>", unsafe_allow_html=True)
+    st.markdown("<hr class='mdm2-divider' style='margin-top:0px; margin-bottom:10px;'>", unsafe_allow_html=True)
     st.markdown("""
     <div class="section-header" style="margin-bottom:24px;">
         <h3>Platform Modules</h3>
@@ -1177,7 +1211,7 @@ with tab_home:
             <strong>MDM2InPred v1.0</strong>
         </div>
         <div class="footer-center">
-            © 2024–2025 | All rights reserved <br>
+            ©️ 2025–2026 | All rights reserved <br>
             For academic and non-commercial use only
         </div>
         <div class="footer-right">
@@ -1190,7 +1224,6 @@ with tab_home:
 # ── PREDICTION TAB ──
 # ============================================================
 with tab_pred:
-    st.markdown('<div id="prediction-section"></div>', unsafe_allow_html=True)
     st.markdown("""
     <div class="module-desc-box">
         <div class="mod-title">Prediction Module</div>
@@ -1240,7 +1273,7 @@ with tab_con:
 
     col_conv, _ = st.columns([1.2, 1])
     with col_conv:
-        if "pIC" in conversion_type:
+        if conversion_type == "pIC₅₀  →  IC₅₀":
             pic50_value = st.text_input("Enter pIC₅₀ value:")
             if st.button("⇄ Convert to IC₅₀"):
                 try:
@@ -1271,7 +1304,7 @@ with tab_data:
         <div class="mod-title">Dataset of MDM2InPred</div>
         <div class="mod-text">
             Training, test, and external validation sets used to develop the LightGBM and Random Forest models.
-            Click any button to preview the dataset in an interactive table, then download from the toolbar.
+            Click any button to preview the dataset in an interactive table, then download it using the button below the table.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1302,6 +1335,15 @@ with tab_data:
                         st.markdown(f"<p style='font-weight:600;color:var(--teal-dark);margin-bottom:8px;font-family:Poppins,sans-serif;'> {model} — {dataset}</p>", unsafe_allow_html=True)
                         df = pd.read_csv(file_path)
                         st.dataframe(df, use_container_width=True)
+
+                        csv_data = df.to_csv(index=False).encode("utf-8")
+                        st.download_button(
+                            label=f"Download {dataset} (CSV)",
+                            data=csv_data,
+                            file_name=os.path.basename(file_path),
+                            mime="text/csv",
+                            key=f"download-{model}-{dataset}"
+                        )
                     else:
                         st.error(f"File not found: {file_path}")
         st.markdown('</div>', unsafe_allow_html=True)
@@ -1366,7 +1408,8 @@ with tab_contact:
     """, unsafe_allow_html=True)
 
     team = [
-        ("images/1.jpeg", "Jharnalipi Soren", "Research Scholar", "jharnalipijsoren_phd2025@iar.ac.in"),
+        ("images/1.jpg", "Jharnalipi Soren", "Research Scholar", "jharnalipi018@gmail.com"),
+        ("images/6.jpg", "Ruturaj Kardode", "Research Scholar", "rutubioinfo@gmail.com"),
         ("images/2.jpeg", "Meet Bhayani", "Developer", "meetmbhayani@gmail.com"),
         ("images/3.jpeg", "Riya Patel", "Developer", "riya20.surat@gmail.com"),
         ("images/4.jpeg", "Pranjal Oza", "Developer", "pranjaloza7@gmail.com"),
@@ -1399,7 +1442,7 @@ with tab_chat:
         <div class="mod-text">
             This assistant is designed to help you understand and use the MDM2InPred dashboard.
             Ask questions about the <strong>Prediction</strong> module (SMILES input, model selection, CSV output),
-            the <strong>Converter</strong> (IC₅₀ ↔ pIC₅₀), the <strong>Dataset</strong> tab, or general concepts
+            the <strong>Converter</strong> (IC₅₀ ⇌ pIC₅₀), the <strong>Dataset</strong> tab, or general concepts
             such as MDM2, p53, inhibitors, LightGBM, and Random Forest.
         </div>
     </div>
@@ -1440,6 +1483,6 @@ with tab_chat:
     if send_btn and user_input.strip():
         text = user_input.strip()
         st.session_state.chat_history.append({"role": "user", "text": text})
-        bot_answer = chatbot_reply(text)
+        bot_answer = chatbot_reply(text)          # ← change this line
         st.session_state.chat_history.append({"role": "bot", "text": bot_answer})
         st.rerun()
