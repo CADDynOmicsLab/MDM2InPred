@@ -1,0 +1,17 @@
+# Virtual environment
+smilesenv/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Secrets
+.env
+.env.*
+.streamlit/secrets.toml
+
+# Website media
+video.mp4
+
+# Large datasets
+NaN_drop_MDM2.csv
