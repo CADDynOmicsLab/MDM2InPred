@@ -1030,7 +1030,7 @@ RULES:
 def chatbot_reply(user_text: str) -> str:
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=[
                 {"role": "system", "content": SYSTEM_INSTRUCTIONS + "\n\nAPP CONTEXT:\n" + APP_CONTEXT},
                 {"role": "user", "content": user_text}
