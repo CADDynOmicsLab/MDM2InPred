@@ -8,6 +8,6 @@ services:
       - "8501:8501"
 
     volumes:
-      - /root/mdm2inpred/video.mp4:/app/video.mp4:ro
+      - /root/mdm2inpred/video.MP4:/app/video.mp4:ro
       - /root/mdm2inpred/NaN_drop_MDM2.csv:/app/NaN_drop_MDM2.csv:ro
       - /root/mdm2inpred/.streamlit:/app/.streamlit:ro
