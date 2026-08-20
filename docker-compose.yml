@@ -1,0 +1,13 @@
+services:
+  mdm2inpred:
+    build: .
+    container_name: mdm2inpred
+    restart: unless-stopped
+
+    ports:
+      - "8501:8501"
+
+    volumes:
+      - ./video.mp4:/app/video.mp4:ro
+      - ./NaN_drop_MDM2.csv:/app/NaN_drop_MDM2.csv:ro
+      - ./.streamlit:/app/.streamlit:ro

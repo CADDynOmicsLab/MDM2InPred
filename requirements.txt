@@ -1,0 +1,11 @@
+streamlit
+pandas
+joblib
+numpy
+scikit-learn
+lightgbm
+padelpy
+rdkit
+openai
+groq
+cohere
