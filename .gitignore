@@ -10,8 +10,5 @@ __pycache__/
 .env.*
 .streamlit/secrets.toml
 
-# Website media
-video.mp4
-
 # Large datasets
 NaN_drop_MDM2.csv
