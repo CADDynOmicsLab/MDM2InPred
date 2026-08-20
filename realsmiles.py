@@ -1364,7 +1364,7 @@ with tab_help:
         </div>
     </div>
     """, unsafe_allow_html=True)
-    st.video("video.mp4")
+    st.video("video.MP4")
 
 # ============================================================
 # ── CONTACT TAB ──
